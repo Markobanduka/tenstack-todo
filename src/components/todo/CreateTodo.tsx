@@ -1,39 +1,27 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { addTodo } from "../service/TodoService";
+interface CreateTodoProps {
+  handleAddTodo: () => void;
+  newTodoTitle: string;
+  setNewTodoTitle: (title: string) => void;
+}
 
-const CreateTodo = () => {
-  const queryClient = useQueryClient();
-  const [title, setTitle] = useState("");
-
-  const { mutate: addTodoMutation } = useMutation({
-    mutationFn: addTodo,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-    },
-  });
-
+const CreateTodo: React.FC<CreateTodoProps> = ({
+  handleAddTodo,
+  newTodoTitle,
+  setNewTodoTitle,
+}) => {
   return (
-    <div className="h-screen w-64 border border-gray-500">
-      <div className="flex justify-center items-center">
+    <div>
+      <h1 className="text-2xl mb-4">Todo App</h1>
+      <div className="mt-4">
         <input
           type="text"
-          className="border border-gray-700"
-          placeholder="Enter todo"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          value={newTodoTitle}
+          onChange={(e) => setNewTodoTitle(e.target.value)}
+          placeholder="New Todo"
+          className="border p-2 mr-2"
         />
-        <button
-          onClick={() => {
-            try {
-              addTodoMutation({ title });
-              setTitle("");
-            } catch (error) {
-              console.log(error);
-            }
-          }}
-        >
-          Add todo
+        <button onClick={handleAddTodo} className="bg-blue-500 text-white p-2">
+          Add Todo
         </button>
       </div>
     </div>

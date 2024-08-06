@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addTodo, fetchTodos } from "../service/TodoService";
+import { addTodo, fetchTodos, TodoListProps } from "../service/TodoService";
 import { useState } from "react";
+import CreateTodo from "./CreateTodo";
 
-const TodoCards = () => {
+const TodoCards: React.FC = () => {
   const queryClient = useQueryClient();
   const [newTodoTitle, setNewTodoTitle] = useState("");
 
@@ -10,7 +11,7 @@ const TodoCards = () => {
     data: todos,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<TodoListProps[]>({
     queryKey: ["todos"],
     queryFn: fetchTodos,
   });
@@ -27,30 +28,46 @@ const TodoCards = () => {
     setNewTodoTitle("");
   };
 
+  const handleDelete = (id: number) => {
+    const filteredTodos = todos?.filter((todo) => todo.id !== id);
+    localStorage.setItem("todos", JSON.stringify(filteredTodos));
+    queryClient.invalidateQueries({ queryKey: ["todos"] });
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl mb-4">Todo App</h1>
-      <div className="mt-4">
-        <input
-          type="text"
-          value={newTodoTitle}
-          onChange={(e) => setNewTodoTitle(e.target.value)}
-          placeholder="New Todo"
-          className="border p-2 mr-2"
-        />
-        <button onClick={handleAddTodo} className="bg-blue-500 text-white p-2">
-          Add Todo
-        </button>
-      </div>
+      <CreateTodo
+        handleAddTodo={handleAddTodo}
+        newTodoTitle={newTodoTitle}
+        setNewTodoTitle={setNewTodoTitle}
+      />
       <ul>
-        {todos.map((todo) => (
-          <li key={todo.id} className="border border-t-2">
-            {todo.title}
-          </li>
-        ))}
+        {todos?.length ? (
+          todos.map((todo: TodoListProps) => (
+            <li
+              key={todo.id}
+              className="border border-t-2 flex justify-between items-center p-2"
+            >
+              <span>{todo.title}</span>
+              <div>
+                <button className="bg-blue-600 p-1 text-white mx-1">
+                  Update
+                </button>
+                <button
+                  className="bg-red-500 text-white p-1"
+                  onClick={() => handleDelete(todo.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))
+        ) : (
+          <li>No todos available</li>
+        )}
       </ul>
     </div>
   );
