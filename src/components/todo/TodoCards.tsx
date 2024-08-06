@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addTodo, fetchTodos, TodoListProps } from "../service/TodoService";
+import {
+  addTodo,
+  fetchTodos,
+  updateTodo,
+  TodoListProps,
+} from "../service/TodoService";
 import { useState } from "react";
 import CreateTodo from "./CreateTodo";
 
 const TodoCards: React.FC = () => {
   const queryClient = useQueryClient();
   const [newTodoTitle, setNewTodoTitle] = useState("");
+  const [editTodoId, setEditTodoId] = useState<number | null>(null);
+  const [editTodoTitle, setEditTodoTitle] = useState("");
 
   const {
     data: todos,
@@ -16,15 +23,28 @@ const TodoCards: React.FC = () => {
     queryFn: fetchTodos,
   });
 
-  const mutation = useMutation({
+  const addMutation = useMutation({
     mutationFn: addTodo,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: updateTodo,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      setEditTodoId(null);
+      setEditTodoTitle("");
+    },
+  });
+
   const handleAddTodo = () => {
-    mutation.mutate({ id: Date.now(), title: newTodoTitle, completed: false });
+    addMutation.mutate({
+      id: Date.now(),
+      title: newTodoTitle,
+      completed: false,
+    });
     setNewTodoTitle("");
   };
 
@@ -32,6 +52,24 @@ const TodoCards: React.FC = () => {
     const filteredTodos = todos?.filter((todo) => todo.id !== id);
     localStorage.setItem("todos", JSON.stringify(filteredTodos));
     queryClient.invalidateQueries({ queryKey: ["todos"] });
+  };
+
+  const handleUpdate = (id: number) => {
+    const todoToUpdate = todos?.find((todo) => todo.id === id);
+    if (todoToUpdate) {
+      setEditTodoId(id);
+      setEditTodoTitle(todoToUpdate.title);
+    }
+  };
+
+  const handleSaveUpdate = () => {
+    if (editTodoId !== null) {
+      updateMutation.mutate({
+        id: editTodoId,
+        title: editTodoTitle,
+        completed: false,
+      });
+    }
   };
 
   if (isLoading) return <div>Loading...</div>;
@@ -51,17 +89,48 @@ const TodoCards: React.FC = () => {
               key={todo.id}
               className="border border-t-2 flex justify-between items-center p-2"
             >
-              <span>{todo.title}</span>
+              {editTodoId === todo.id ? (
+                <input
+                  type="text"
+                  value={editTodoTitle}
+                  onChange={(e) => setEditTodoTitle(e.target.value)}
+                  className="border"
+                />
+              ) : (
+                <span>{todo.title}</span>
+              )}
               <div>
-                <button className="bg-blue-600 p-1 text-white mx-1">
-                  Update
-                </button>
-                <button
-                  className="bg-red-500 text-white p-1"
-                  onClick={() => handleDelete(todo.id)}
-                >
-                  Delete
-                </button>
+                {editTodoId === todo.id ? (
+                  <div>
+                    <button
+                      className="bg-green-600 p-1 text-white mx-1"
+                      onClick={handleSaveUpdate}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className=" px-3 py-1 bg-red-500 text-white"
+                      onClick={() => setEditTodoId(null)}
+                    >
+                      X
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      className="bg-blue-600 p-1 text-white mx-1"
+                      onClick={() => handleUpdate(todo.id)}
+                    >
+                      Update
+                    </button>
+                    <button
+                      className="bg-red-500 text-white p-1"
+                      onClick={() => handleDelete(todo.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             </li>
           ))
@@ -72,4 +141,5 @@ const TodoCards: React.FC = () => {
     </div>
   );
 };
+
 export default TodoCards;
